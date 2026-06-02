@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SecurityGuard</string>
+    <string name="admin_receiver_description">SecurityGuard Device Admin</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="today_summary">আজকের সামারি</string>
+    <string name="screen_time">স্ক্রিন টাইম</string>
+    <string name="location_history">লোকেশন হিসটরি</string>
+    <string name="top_apps">শীর্ষ অ্যাপ</string>
+    <string name="alerts">সতর্কতা</string>
+    
+    <!-- Activity -->
+    <string name="activity_title">অ্যাক্টিভিটি</string>
+    <string name="app_usage">অ্যাপ ব্যবহার</string>
+    <string name="device_activity">ডিভাইস অ্যাক্টিভিটি</string>
+    <string name="network_activity">নেটওয়ার্ক অ্যাক্টিভিটি</string>
+    
+    <!-- Security -->
+    <string name="security_title">নিরাপত্তা</string>
+    <string name="threats">হুমকি</string>
+    <string name="risky_apps">ঝুঁকিপূর্ণ অ্যাপ</string>
+    <string name="permissions">পারমিশন</string>
+    
+    <!-- Reports -->
+    <string name="reports_title">রিপোর্ট</string>
+    <string name="daily_report">দৈনিক রিপোর্ট</string>
+    <string name="weekly_report">সাপ্তাহিক রিপোর্ট</string>
+    <string name="recommendations">সুপারিশ</string>
+    
+    <!-- Settings -->
+    <string name="settings_title">সেটিংস</string>
+    <string name="permissions_settings">পারমিশন সেটিংস</string>
+    <string name="notifications">নোটিফিকেশন</string>
+    <string name="about">সম্পর্কে</string>
+    
+    <!-- Common -->
+    <string name="enable">সক্ষম করুন</string>
+    <string name="disable">নিষ্ক্রিয় করুন</string>
+    <string name="settings">সেটিংস</string>
+    <string name="back">ফিরে যান</string>
+    <string name="ok">ঠিক আছে</string>
+    <string name="cancel">বাতিল</string>
+    <string name="error">ত্রুটি</string>
+    <string name="loading">লোড হচ্ছে...</string>
+</resources>
