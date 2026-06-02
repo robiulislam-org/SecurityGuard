@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/dashboard">
+
+    <fragment
+        android:id="@+id/dashboard"
+        android:name="com.securityguard.app.ui.DashboardFragment"
+        android:label="Dashboard" />
+
+    <fragment
+        android:id="@+id/activity"
+        android:name="com.securityguard.app.ui.ActivityFragment"
+        android:label="Activity" />
+
+    <fragment
+        android:id="@+id/security"
+        android:name="com.securityguard.app.ui.SecurityFragment"
+        android:label="Security" />
+
+    <fragment
+        android:id="@+id/reports"
+        android:name="com.securityguard.app.ui.ReportsFragment"
+        android:label="Reports" />
+
+    <fragment
+        android:id="@+id/settings"
+        android:name="com.securityguard.app.ui.SettingsFragment"
+        android:label="Settings" />
+</navigation>

@@ -1,0 +1,53 @@
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file
+local.properties
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Android
+*.apk
+*.ap_
+*.dex
+*.class
+**/bin/
+**/obj/
+
+# Generated files
+gen/
+out/
+
+# Keystore files
+*.keystore
+*.jks
+
+# External native build folder
+.externalNativeBuild
+
+# Android Studio
+.gradle
+.idea/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/codeStyles
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# OS
+.DS_Store
+Thumbs.db
