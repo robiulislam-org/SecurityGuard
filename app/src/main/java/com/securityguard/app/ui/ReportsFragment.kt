@@ -83,7 +83,7 @@ class ReportsFragment : Fragment() {
                 position = XAxis.XAxisPosition.BOTTOM
                 granularity = 1f
                 isGranularityEnabled = true
-                drawGridLines = false
+                setDrawGridLines(false)
                 textSize = 10f
             }
             

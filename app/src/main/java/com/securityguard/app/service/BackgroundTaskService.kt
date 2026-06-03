@@ -67,7 +67,17 @@ class BackgroundTaskService : Service() {
         val currentTime = System.currentTimeMillis()
 
         for (pkg in packages) {
-            val isSystemApp = (pkg.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
+            val appInfo = try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    pm.getApplicationInfo(pkg.packageName, PackageManager.ApplicationInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    pm.getApplicationInfo(pkg.packageName, 0)
+                }
+            } catch (e: PackageManager.NameNotFoundException) {
+                continue
+            }
+            val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
             if (isSystemApp || pkg.packageName == packageName) {
                 continue
             }
@@ -86,7 +96,7 @@ class BackgroundTaskService : Service() {
                 }
 
                 if (sensitivePerms.isNotEmpty()) {
-                    val appLabel = pm.getApplicationLabel(pkg.applicationInfo).toString()
+                    val appLabel = pm.getApplicationLabel(appInfo).toString()
                     suspiciousApps.add(
                         SecurityAlertEntity(
                             alertType = "SUSPICIOUS_APP",

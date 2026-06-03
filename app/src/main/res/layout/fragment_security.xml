@@ -30,7 +30,8 @@
     <TextView
         android:id="@+id/tv_empty_state"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:gravity="center"
         android:text="কোনো নিরাপত্তা সতর্কতা পাওয়া যায়নি"
         android:textSize="16sp"

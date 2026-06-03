@@ -2,7 +2,7 @@ name: Build Debug APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -19,17 +19,20 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: gradle
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.0
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon --console=plain
+        run: ./gradlew assembleDebug --no-daemon --console=plain
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SecurityGuard-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

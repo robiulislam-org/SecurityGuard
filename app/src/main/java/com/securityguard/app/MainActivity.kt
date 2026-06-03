@@ -12,6 +12,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.securityguard.app.databinding.ActivityMainBinding
 import com.securityguard.app.receiver.AdminReceiver
 import com.securityguard.app.service.MonitoringService
+import com.securityguard.app.service.BackgroundTaskService
+import com.securityguard.app.ui.PermissionActivity
 import android.content.Intent
 import android.util.Log
 
