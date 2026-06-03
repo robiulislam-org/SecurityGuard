@@ -23,6 +23,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (!hasAllPermissions()) {
+            startActivity(Intent(this, PermissionActivity::class.java))
+            finish()
+            return
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -40,9 +47,46 @@ class MainActivity : AppCompatActivity() {
         Log.d("SecurityGuard", "MainActivity created successfully")
     }
 
+    private fun hasAllPermissions(): Boolean {
+        val permissions = arrayOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.READ_PHONE_STATE,
+            android.Manifest.permission.READ_CALL_LOG
+        )
+        return isUsageStatsGranted() && permissions.all {
+            androidx.core.content.ContextCompat.checkSelfPermission(this, it) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun isUsageStatsGranted(): Boolean {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+        val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                packageName
+            )
+        } else {
+            appOps.checkOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                packageName
+            )
+        }
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
     private fun startMonitoringService() {
-        val serviceIntent = Intent(this, MonitoringService::class.java)
-        startService(serviceIntent)
+        val monitorIntent = Intent(this, MonitoringService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(monitorIntent)
+        } else {
+            startService(monitorIntent)
+        }
+
+        val scanIntent = Intent(this, BackgroundTaskService::class.java)
+        startService(scanIntent)
     }
 
     private fun checkAndRequestDeviceAdmin() {
