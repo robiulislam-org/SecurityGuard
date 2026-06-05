@@ -17,14 +17,16 @@ class BackgroundTaskService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private var isRunning = false
 
+    // ইতিমধ্যে সেভ করা alert-এর key গুলো মনে রাখো (duplicate এড়াতে)
+    private val seenAlertKeys = mutableSetOf<String>()
+
     override fun onCreate() {
         super.onCreate()
         db = SecurityDatabase.getDatabase(this)
-        Log.d("BackgroundTaskService", "Service created")
+        Log.d(TAG, "BackgroundTaskService created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("BackgroundTaskService", "Service started onStartCommand")
         if (!isRunning) {
             isRunning = true
             startScanning()
@@ -32,39 +34,52 @@ class BackgroundTaskService : Service() {
         return START_STICKY
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     private fun startScanning() {
         serviceScope.launch {
+            // প্রথম scan টা ১৫ সেকেন্ড পরে শুরু করো (app load হতে সময় দাও)
+            delay(15_000L)
             while (isActive) {
                 try {
                     performSecurityScan()
-                    delay(300000) // Scan every 5 minutes
                 } catch (e: Exception) {
-                    Log.e("BackgroundTaskService", "Error during scan: ${e.message}")
+                    Log.e(TAG, "Error during scan: ${e.message}")
                 }
+                delay(5 * 60 * 1000L) // প্রতি ৫ মিনিটে scan
             }
         }
     }
 
     private suspend fun performSecurityScan() {
-        Log.d("BackgroundTaskService", "Starting security scan...")
+        Log.d(TAG, "Starting security scan...")
         val pm = packageManager
+
         val packages: List<PackageInfo> = try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                 pm.getInstalledPackages(PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()))
             } else {
+                @Suppress("DEPRECATION")
                 pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)
             }
         } catch (e: Exception) {
-            Log.e("BackgroundTaskService", "Failed to retrieve packages: ${e.message}")
-            emptyList()
+            Log.e(TAG, "Failed to retrieve packages: ${e.message}")
+            return
         }
 
-        val suspiciousApps = mutableListOf<SecurityAlertEntity>()
         val currentTime = System.currentTimeMillis()
+        val newAlerts = mutableListOf<SecurityAlertEntity>()
+
+        // বিপজ্জনক permission-এর তালিকা
+        val dangerousPerms = mapOf(
+            android.Manifest.permission.CAMERA to "ক্যামেরা",
+            android.Manifest.permission.RECORD_AUDIO to "মাইক্রোফোন",
+            android.Manifest.permission.ACCESS_FINE_LOCATION to "সঠিক অবস্থান",
+            android.Manifest.permission.READ_CALL_LOG to "কল লগ",
+            android.Manifest.permission.READ_CONTACTS to "পরিচিতি",
+            android.Manifest.permission.SEND_SMS to "SMS পাঠানো",
+            android.Manifest.permission.READ_SMS to "SMS পড়া"
+        )
 
         for (pkg in packages) {
             val appInfo = try {
@@ -74,48 +89,52 @@ class BackgroundTaskService : Service() {
                     @Suppress("DEPRECATION")
                     pm.getApplicationInfo(pkg.packageName, 0)
                 }
-            } catch (e: PackageManager.NameNotFoundException) {
-                continue
-            }
+            } catch (e: PackageManager.NameNotFoundException) { continue }
+
+            // System app ও নিজেকে বাদ দাও
             val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
-            if (isSystemApp || pkg.packageName == packageName) {
-                continue
+            if (isSystemApp || pkg.packageName == packageName) continue
+
+            val requestedPerms = pkg.requestedPermissions ?: continue
+            val foundPerms = dangerousPerms.entries
+                .filter { (perm, _) -> requestedPerms.contains(perm) }
+                .map { it.value }
+
+            if (foundPerms.isEmpty()) continue
+
+            val appLabel = pm.getApplicationLabel(appInfo).toString()
+            val alertKey = "${pkg.packageName}:${foundPerms.sorted().joinToString(",")}"
+
+            // ইতিমধ্যে এই alert insert করা হয়েছে কিনা চেক করো
+            if (seenAlertKeys.contains(alertKey)) continue
+            seenAlertKeys.add(alertKey)
+
+            // risk level নির্ধারণ করো
+            val riskLevel = when {
+                foundPerms.size >= 4 -> "🔴 উচ্চ ঝুঁকি"
+                foundPerms.size >= 2 -> "🟡 মাঝারি ঝুঁকি"
+                else -> "🟢 কম ঝুঁকি"
             }
 
-            val requestedPermissions = pkg.requestedPermissions
-            if (requestedPermissions != null) {
-                val sensitivePerms = mutableListOf<String>()
-                for (perm in requestedPermissions) {
-                    if (perm == android.Manifest.permission.CAMERA ||
-                        perm == android.Manifest.permission.RECORD_AUDIO ||
-                        perm == android.Manifest.permission.ACCESS_FINE_LOCATION ||
-                        perm == android.Manifest.permission.READ_CALL_LOG
-                    ) {
-                        sensitivePerms.add(perm.substringAfterLast("."))
-                    }
-                }
-
-                if (sensitivePerms.isNotEmpty()) {
-                    val appLabel = pm.getApplicationLabel(appInfo).toString()
-                    suspiciousApps.add(
-                        SecurityAlertEntity(
-                            alertType = "SUSPICIOUS_APP",
-                            title = "সংবেদনশীল পারমিশন সনাক্ত হয়েছে",
-                            description = "\"$appLabel\" অ্যাপটির কাছে এই পারমিশনগুলো আছে: ${sensitivePerms.joinToString(", ")}",
-                            timestamp = currentTime,
-                            isResolved = false
-                        )
-                    )
-                }
-            }
+            newAlerts.add(
+                SecurityAlertEntity(
+                    alertType = "SUSPICIOUS_APP",
+                    title = "$riskLevel — $appLabel",
+                    description = "\"$appLabel\" অ্যাপটির কাছে এই সংবেদনশীল পারমিশনগুলো আছে: ${foundPerms.joinToString(", ")}। অ্যাপটি বিশ্বস্ত কিনা যাচাই করুন।",
+                    timestamp = currentTime,
+                    isResolved = false
+                )
+            )
         }
 
-        if (suspiciousApps.isNotEmpty()) {
-            db.securityAlertDao().clearAll()
-            for (alert in suspiciousApps) {
+        // শুধু নতুন alerts insert করো — সব delete করো না!
+        if (newAlerts.isNotEmpty()) {
+            for (alert in newAlerts) {
                 db.securityAlertDao().insert(alert)
             }
-            Log.d("BackgroundTaskService", "Security scan finished. Found ${suspiciousApps.size} apps with sensitive permissions.")
+            Log.d(TAG, "Scan done. ${newAlerts.size} new alerts inserted.")
+        } else {
+            Log.d(TAG, "Scan done. No new suspicious apps found.")
         }
     }
 
@@ -123,6 +142,10 @@ class BackgroundTaskService : Service() {
         super.onDestroy()
         isRunning = false
         serviceJob.cancel()
-        Log.d("BackgroundTaskService", "Service destroyed")
+        Log.d(TAG, "BackgroundTaskService destroyed")
+    }
+
+    companion object {
+        private const val TAG = "BackgroundTaskService"
     }
 }

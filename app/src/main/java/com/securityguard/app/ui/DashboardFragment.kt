@@ -4,8 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import com.securityguard.app.R
 import com.securityguard.app.databinding.FragmentDashboardBinding
 import java.util.concurrent.TimeUnit
 
@@ -25,7 +27,7 @@ class DashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProvider(this).get(DashboardViewModel::class.java)
+        viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
         observeViewModel()
     }
 
@@ -37,31 +39,32 @@ class DashboardFragment : Fragment() {
 
                 val topApps = usageList.sortedByDescending { it.usageTimeMs }.take(3)
                 val sb = StringBuilder()
-                for ((index, app) in topApps.withIndex()) {
+                topApps.forEachIndexed { index, app ->
                     sb.append("${index + 1}. ${app.appName} — ${formatDuration(app.usageTimeMs)}\n")
                 }
                 binding.tvTopAppsValue.text = sb.toString().trim()
             } else {
-                binding.tvScreenTimeValue.text = "0 মিনিট"
-                binding.tvTopAppsValue.text = "কোনো ডেটা পাওয়া যায়নি"
+                binding.tvScreenTimeValue.text = "০ মিনিট"
+                binding.tvTopAppsValue.text = "আজকের ডেটা লোড হচ্ছে..."
             }
         }
 
         viewModel.latestLocation.observe(viewLifecycleOwner) { location ->
-            if (location != null) {
-                binding.tvLocationValue.text = "অক্ষাংশ: ${"%.4f".format(location.latitude)}, দ্রাঘিমাংশ: ${"%.4f".format(location.longitude)}"
+            binding.tvLocationValue.text = if (location != null) {
+                "অক্ষাংশ: ${"%.4f".format(location.latitude)}\nদ্রাঘিমাংশ: ${"%.4f".format(location.longitude)}"
             } else {
-                binding.tvLocationValue.text = "লোকেশন পাওয়া যায়নি"
+                "লোকেশন পাওয়া যায়নি"
             }
         }
 
         viewModel.unresolvedAlerts.observe(viewLifecycleOwner) { alerts ->
+            val ctx = requireContext()
             if (!alerts.isNullOrEmpty()) {
-                binding.tvSecurityStatus.text = "${alerts.size}টি ঝুঁকি সনাক্ত করা হয়েছে!"
-                binding.tvSecurityStatus.setTextColor(resources.getColor(android.R.color.holo_red_light, null))
+                binding.tvSecurityStatus.text = "⚠️ ${alerts.size}টি সক্রিয় ঝুঁকি পাওয়া গেছে!"
+                binding.tvSecurityStatus.setTextColor(ContextCompat.getColor(ctx, android.R.color.holo_red_light))
             } else {
-                binding.tvSecurityStatus.text = "কোনো ঝুঁকি পাওয়া যায়নি"
-                binding.tvSecurityStatus.setTextColor(resources.getColor(android.R.color.white, null))
+                binding.tvSecurityStatus.text = "✅ কোনো ঝুঁকি পাওয়া যায়নি"
+                binding.tvSecurityStatus.setTextColor(ContextCompat.getColor(ctx, android.R.color.holo_green_light))
             }
         }
     }
@@ -71,7 +74,8 @@ class DashboardFragment : Fragment() {
         val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
         return when {
             hours > 0 -> "${hours} ঘণ্টা ${minutes} মিনিট"
-            else -> "${minutes} মিনিট"
+            minutes > 0 -> "${minutes} মিনিট"
+            else -> "১ মিনিটের কম"
         }
     }
 
